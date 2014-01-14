@@ -34,4 +34,7 @@ void pit2_isr(void) {
   GPIOC_PCOR = 1<<5;
 }
 
+void pit0_isr(void){}
+void pit3_isr(void){}
+
 void loop(void){;}
