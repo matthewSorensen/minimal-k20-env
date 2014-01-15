@@ -21,7 +21,6 @@ int main(void){
   while(1);
 }
 
-
 void pit1_isr(void) {
   PIT_TFLG1 = 1;
   GPIOC_PSOR = 1<<5;
