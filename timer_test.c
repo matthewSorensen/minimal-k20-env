@@ -3,7 +3,7 @@
 #define TIE 2
 #define TEN 1
 
-void timer_setup() {
+void timer_setup(void) {
   SIM_SCGC6 |= SIM_SCGC6_PIT;
   PIT_MCR = 0x00;
   PIT_LDVAL1 = 48000000;
@@ -14,11 +14,13 @@ void timer_setup() {
   NVIC_ENABLE_IRQ(IRQ_PIT_CH2);
 }
 
-void setup(){
+int main(void){
   PORTC_PCR5 = PORT_PCR_SRE | PORT_PCR_DSE | PORT_PCR_MUX(1);
   GPIOC_PDDR |= 1<<5;
   timer_setup();
+  while(1);
 }
+
 
 void pit1_isr(void) {
   PIT_TFLG1 = 1;
@@ -36,5 +38,3 @@ void pit2_isr(void) {
 
 void pit0_isr(void){}
 void pit3_isr(void){}
-
-void loop(void){;}
