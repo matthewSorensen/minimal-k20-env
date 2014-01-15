@@ -30,11 +30,12 @@ int main(void){
 
 void portc_isr(void){
   uint32_t isfr = PORTC_ISFR;
-  PORTC_ISFR = 0;
+  //  PORTC_ISFR ; // 1 clears, not 0. Fix this.
   if(isfr & (1<<7)){
-      GPIOC_PTOR = 1<<5;
-      PIT_LDVAL2 = 480000;
-      PIT_TCTRL2 |= TEN;  
+    PORTC_PCR7 |= 1<<24; // Critical - reset interrupt flag!
+    GPIOC_PTOR = 1<<5;
+    PIT_LDVAL2 = 480000;
+    PIT_TCTRL2 |= TEN;  
   }
 }
 
