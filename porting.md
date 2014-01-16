@@ -19,11 +19,15 @@ Notes, as a possible blogpost/technical report, on porting [grbl](https://github
 
    * this then requires a minimalist implementation of pins_teensy.c, some modifications to mk20*.c, and whatever files implement all of the USB stuff.
 
+   * init.c is actually pretty useless.
+
 ## Processor Differences
 
 ###Timers
 
 ###IO
+
+	* clean, although we do want a bunch of macros to make selecting bits simpler.
 
 ###EEPROM
 
@@ -31,15 +35,19 @@ Notes, as a possible blogpost/technical report, on porting [grbl](https://github
 	* In particular, we very much don't want to get in a situation involving unaligned reads or writes.
 	* This, of course, isn't an issue on an 8-bit processor, so grbl's implementation is full of single-byte
 	  reads/writes.
-	* Configuring the FlexRAM is quite odd, and requires executing some code from RAM. Lulz.
-
+	* Configuring the FlexRAM is quite odd, and requires executing some code from RAM.
+	* In the interest of brevity, we provide two functions - aligned n-word write with 32-bit checksum, and aligned n-word read with 32-bit checksum.
+	  * because we can, use the hardware checksum.
+	
 ###USB Serial Communication
 
        * We want to use the K20 as a cdc device. Exact implementation is in usb_serial.c.
        * Also need to initialize the usb subsystem, which is usb_dev.c and requires usb_desc.c.
        * Both of these require usb_mem.c - oh man this is getting heavy.
+       * AND usb_names
 
-
+       * This is much more complicated than I want to deal with right now. Cleaning it up and specializing this is a possibility, but a
+       	 clean re-implementation is pointless to address this quarter.
 
 ## Hardware Configuration
 
