@@ -1,5 +1,7 @@
 #include "mk20dx128.h"
 
+#include "usb_dev.h"
+
 #if F_BUS == 48000000
 #define DEFAULT_FTM_MOD (49152 - 1)
 #define DEFAULT_FTM_PRESCALE 1
@@ -35,5 +37,5 @@ void init(void){
   FTM1_SC = FTM_SC_CLKS(1) | FTM_SC_PS(DEFAULT_FTM_PRESCALE);
 
   // This is where we should initialize the analog subsystem
-  // also, usb
+  usb_init();
 }

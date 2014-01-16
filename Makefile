@@ -25,7 +25,7 @@ OBJCOPY = $(COMPILER)/arm-none-eabi-objcopy
 SIZE = $(COMPILER)/arm-none-eabi-size
 
 
-C_FILES := $(VENDOR)/init.c $(VENDOR)/mk20dx128.c #$(wildcard $(VENDOR)/*.c)
+C_FILES := $(VENDOR)/init.c $(VENDOR)/mk20dx128.c $(VENDOR)/usb_desc.c $(VENDOR)/usb_serial.c $(VENDOR)/usb_dev.c $(VENDOR)/usb_mem.c $(VENDOR)/nonstd.c
 CPP_FILES : $(wildcard $(VENDOR)/*.cpp)
 
 OBJS := $(C_FILES:.c=.o) $(CPP_FILES:.cpp=.o)

@@ -27,7 +27,19 @@ Notes, as a possible blogpost/technical report, on porting [grbl](https://github
 
 ###EEPROM
 
+	* K20s have FlexRAM, not eeprom. Interface is different - implemented in teensys eeprom.c.
+	* In particular, we very much don't want to get in a situation involving unaligned reads or writes.
+	* This, of course, isn't an issue on an 8-bit processor, so grbl's implementation is full of single-byte
+	  reads/writes.
+	* Configuring the FlexRAM is quite odd, and requires executing some code from RAM. Lulz.
+
 ###USB Serial Communication
+
+       * We want to use the K20 as a cdc device. Exact implementation is in usb_serial.c.
+       * Also need to initialize the usb subsystem, which is usb_dev.c and requires usb_desc.c.
+       * Both of these require usb_mem.c - oh man this is getting heavy.
+
+
 
 ## Hardware Configuration
 
