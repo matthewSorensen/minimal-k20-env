@@ -39,6 +39,57 @@ Notes, as a possible blogpost/technical report, on porting [grbl](https://github
   * This is much more complicated than I want to deal with right now. Cleaning it up and specializing this is a possibility, but a clean re-implementation is pointless, at least during this quarter.
 
 ## Hardware Configuration
- 
+
+  * (Possibly conflicting, and roughly prioritized) goals for assigning pins:
+    * Easy programming interface - stepper pins are all in the same port, etc.
+    * Still gives access to peripherals - we need: SPI, I²C, ADC, FlexTimer quad decoder.
+    * Logical to actually configure wiring for teensy3.x. SMD pins on bottom are thus not desirable.
+    * Extensible to a 4-axes (minimum, 5 or 6 would be cooler) configuration.
+
+  * grbl requires step/dir for each axes, limits, stepper enable, spindle enable, spindle direction, reset, feed hold,  cycle start/resume,  coolant enable.
+    * Of these, *n*-step pins, *n*-dir pins, and *n*-limits more-or-less need to be on common ports. The rest of the IO can be on random things.
+   
+  * SPI happens on port D - D1, D2, D3 are {SCLK, MOSI, MISO}, the rest can be used as chip-select or GPIO. On Teensy, these are pins 14, 7, 8.
+  * D5 and D6 are ADC - pins 20 and 21. 
+  * Port C gets stepper control - C0-C11 give us 6-axes step and direction.
+    * Pin 9,  10, 11 (C3,C4,C6) are step for x,y,z
+    * Pin 12, 13, 15 (C7,C5,C0) are dir for x,y,z
+    * Pins C1, C2, C8, C9, C10, C11 are random IO, or 6-axis expansion.
+
+  * Port B is 6-limit switches, and 2 GPIO.
+    * Pins 16,17,18 are limit switches for x,y,z
+    * Pins B16, B17, B1, B19, B18 are random IO, or  6-axis expansion.
+
+  * Spindle enable is pin 3 (12), spindle direction is 4 (A13)
+  * Flood coolant is 5 (D7), mist coolant is 6 (D4)
+
+  * 5 more gpio are required - the rest of port A and E are dedicated to that (6 total), as is the rest of port D. 
 
 ## Per-File Notes
+
+### main.c
+
+    * Only needed to change a few includes in order to get a clean compile. All avr specific includes are removed (interrupt.h, pgmspace.h), and
+      stdint.h is inserted. Also, main explicitly enables interrupts after the first round of initialization - probably not needed.
+
+### spindle.c
+
+    * Very simple, toggles two pins - direction, speed
+    * Sets the pattern for declaring the pin mapping - define the gpio register as a macro parameter over the operation. 
+
+### coolant.c
+
+    * Again, just as simple as spindle.c.
+
+### stepper.c
+    * st_wake_up is more or less just converting the IO. PIT0 replaces TIMSK1.
+    * st_go_idle is the exact inverse of st_wake_up, and just as simple.
+    * iterate_trapezoid_cycle_counter gets its return type changed to a full word
+    * The big interrupt gets its name changed to run on PIT0
+    * The reset interrupt changes from TCNT2 to PIT1
+    * (1<<Z_BIT etc) just becomes Z_BIT because of our definition.
+    * For the initialization, what rate do we run the timer at? It won't trigger interrupts at all.
+    * config_step_timer became really really fucking easy, because of the 32 bit timer and lack of a prescaler.
+    * My assumption is that config_step_timer takes immediate effect, given that it is messing with the prescaler.
+    * Bug in Grbl! F_CPU above 2^32/60 (35.7MHz) cause an integer overflow in set_step_events_per_minute - solution is to add an explicit
+      annotation that the 60 is a uint32_t.
