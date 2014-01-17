@@ -18,6 +18,7 @@
 #define PULL_UP    3
 #define PULL_NONE  0
 
+#define STANDARD_OUTPUT ((1<<8) | (1<<6) | (1<<2))
+#define MUX_GPIO (1<<8)
 
-#define STANDARD_GPIO ((1<<8) | (1<<6) | (1<<2))
 #endif
