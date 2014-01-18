@@ -1,8 +1,8 @@
 #include <stdint.h>
 #include "mk20dx128.h"
-// Per page 552 of the K20 manual, this results in 512 bytes of NVM,
+// Per page 552 of the K20 manual, this results in 1024 bytes of NVM,
 // with ~32k word aligned write.
-#define NVM_SIZE 0x35 
+#define NVM_SIZE 0x34 
 // Oddly, I can't find this definition in the manual?
 #define FlexBase ((uint8_t*) 0x14000000)
 
