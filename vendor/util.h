@@ -4,8 +4,8 @@
 #include <stdint.h>
 
 void delay(uint32_t);
-static inline void delayMicroseconds(uint32_t) __attribute__((always_inline, unused));
-static inline void delayMicroseconds(uint32_t usec)
+static inline void delay_microseconds(uint32_t) __attribute__((always_inline, unused));
+static inline void delay_microseconds(uint32_t usec)
 {
 #if F_CPU == 96000000
 	uint32_t n = usec << 5;
@@ -16,9 +16,9 @@ static inline void delayMicroseconds(uint32_t usec)
 #endif
 	if (usec == 0) return;
 	asm volatile(
-		"L_%=_delayMicroseconds:"		"\n\t"
+		"L_%=_delay_microseconds:"		"\n\t"
 		"subs   %0, #1"				"\n\t"
-		"bne    L_%=_delayMicroseconds"		"\n"
+		"bne    L_%=_delay_microseconds"		"\n"
 		: "+r" (n) :
 	);
 }
