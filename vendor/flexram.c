@@ -4,7 +4,7 @@
 // with ~32k word aligned write.
 #define NVM_SIZE 0x34 
 // Oddly, I can't find this definition in the manual?
-#define FlexBase ((uint8_t*) 0x14000000)
+#define FlexBase ((uint32_t*) 0x14000000)
 
 #define CRC_32C 0x8F6E37A0
 #define WAS (1<<25)
@@ -26,6 +26,10 @@ static void configure_crc(void){
 void initialize_flexram(void){
   uint16_t flash_cmd[] = {0xf06f, 0x037f, 0x7003, 0x7803,0xf013, 0x0f80, 0xd0fb, 0x4770};
   uint8_t status;
+
+
+  SIM_SCGC6 |= (1<<18);// Also enable the clock to the crc
+
   if (FTFL_FCNFG & FTFL_FCNFG_RAMRDY) {
     // FlexRAM is configured as traditional RAM
     // We need to reconfigure for EEPROM usage
@@ -46,8 +50,8 @@ void initialize_flexram(void){
   flexram_wait();
 }
 
-void write_with_checksum(uint32_t* src, uint32_t dest_offset, uint32_t size){
-  uint32_t* target = (uint32_t*)(&FlexBase[dest_offset]);
+uint32_t write_with_checksum(uint32_t* src, uint32_t dest_offset, uint32_t size){
+  uint32_t* target = &FlexBase[dest_offset];
   uint32_t value;
   configure_crc();
   for(; size>0; size--){
@@ -63,11 +67,12 @@ void write_with_checksum(uint32_t* src, uint32_t dest_offset, uint32_t size){
     *target = CRC_CRC;
     flexram_wait();
   }
+  return CRC_CRC;
 }
 
 
 uint32_t read_with_checksum(uint32_t* dest, uint32_t src_offset, uint32_t size){
-  uint32_t* src = (uint32_t*)(&FlexBase[src_offset]);
+  uint32_t* src = &FlexBase[src_offset];
   uint32_t value;
   configure_crc();
   for(; size > 0; size--){
@@ -78,3 +83,15 @@ uint32_t read_with_checksum(uint32_t* dest, uint32_t src_offset, uint32_t size){
   return CRC_CRC ^ *src;
 }
 
+
+void word_write(uint32_t addr, uint32_t value){
+  uint32_t* target = &FlexBase[addr];
+  if(*target != value){
+    *target = value;
+    flexram_wait();
+  }
+  
+}
+uint32_t word_read(uint32_t addr){
+  return FlexBase[addr];
+}
