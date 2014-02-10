@@ -58,7 +58,7 @@ Notes, as a possible blogpost/technical report, on porting [grbl](https://github
 
   * Port B is 6-limit switches, and 2 GPIO.
     * Pins 16,17,18 are limit switches for x,y,z
-    * Pins B16, B17, B1, B19, B18 are random IO, or  6-axis expansion.
+    * Pins 0, 1, 25 (B16,B17,B19) are reset, feed hold, cycle start/resume
 
   * Spindle enable is pin 3 (12), spindle direction is 4 (A13)
   * Flood coolant is 5 (D7), mist coolant is 6 (D4)
@@ -69,27 +69,68 @@ Notes, as a possible blogpost/technical report, on porting [grbl](https://github
 
 ### main.c
 
-    * Only needed to change a few includes in order to get a clean compile. All avr specific includes are removed (interrupt.h, pgmspace.h), and
+  * Only needed to change a few includes in order to get a clean compile. All avr specific includes are removed (interrupt.h, pgmspace.h), and
       stdint.h is inserted. Also, main explicitly enables interrupts after the first round of initialization - probably not needed.
 
 ### spindle.c
 
-    * Very simple, toggles two pins - direction, speed
-    * Sets the pattern for declaring the pin mapping - define the gpio register as a macro parameter over the operation. 
+  * Very simple, toggles two pins - direction, speed
+  * Sets the pattern for declaring the pin mapping - define the gpio register as a macro parameter over the operation. 
 
 ### coolant.c
 
-    * Again, just as simple as spindle.c.
+  * Again, just as simple as spindle.c.
 
 ### stepper.c
-    * st_wake_up is more or less just converting the IO. PIT0 replaces TIMSK1.
-    * st_go_idle is the exact inverse of st_wake_up, and just as simple.
-    * iterate_trapezoid_cycle_counter gets its return type changed to a full word
-    * The big interrupt gets its name changed to run on PIT0
-    * The reset interrupt changes from TCNT2 to PIT1
-    * (1<<Z_BIT etc) just becomes Z_BIT because of our definition.
-    * For the initialization, what rate do we run the timer at? It won't trigger interrupts at all.
-    * config_step_timer became really really fucking easy, because of the 32 bit timer and lack of a prescaler.
-    * My assumption is that config_step_timer takes immediate effect, given that it is messing with the prescaler.
-    * Bug in Grbl! F_CPU above 2^32/60 (35.7MHz) cause an integer overflow in set_step_events_per_minute - solution is to add an explicit
+  * st_wake_up is more or less just converting the IO. PIT0 replaces TIMSK1.
+  * st_go_idle is the exact inverse of st_wake_up, and just as simple.
+  * iterate_trapezoid_cycle_counter gets its return type changed to a full word
+  * The big interrupt gets its name changed to run on PIT0
+  * The reset interrupt changes from TCNT2 to PIT1
+  * (1<<Z_BIT etc) just becomes Z_BIT because of our definition.
+  * For the initialization, what rate do we run the timer at? It won't trigger interrupts at all.
+  * config_step_timer became really really fucking easy, because of the 32 bit timer and lack of a prescaler.
+  * My assumption is that config_step_timer takes immediate effect, given that it is messing with the prescaler.
+  * Bug in Grbl! F_CPU above 2^32/60 (35.7MHz) cause an integer overflow in set_step_events_per_minute - solution is to add an explicit
       annotation that the 60 is a uint32_t.
+
+### limits.h
+
+  * Comparatively simple, although it did prompt me to make some IO configuration macro names more accurate. Otherwise good.
+
+### planner.c
+
+  * just change out names for direction bits
+
+### nuts_bolts.c
+
+  * Coverted everything to the vendor version of delay and delay_ms
+
+### gcode.c
+  * clean compile
+
+### motion_control.c
+  * enables/disables hard-limit interrupt, so I refactored that, and limits.c now has a function to set interrupt status.
+
+### report.c
+  * Just defined two macros to convert the calls to printPgmString to something along the lines of usb_serial_write(x,sizeof(x) - 1),
+    where x is a string literal. Works, but could be more elegant.
+
+### print.c
+  * Replaced serial with usb serial.
+  * Oddly, have to provide explicit declarations of the usb serial functions. This
+    is annoying, and may hint that something is wrong.
+
+### serial.c
+
+  * only grbl-specific function is in the SERIAL_RX ISR - execute special characters for feed holds and resets as soon as possible.
+    Unfortuntely, there is not an equivalent place in the usb serial stack for such an interrupt, and so dealing with this requires
+    lots of low-level hacking of usb serial. Not for the initial porting run.
+  * Thus, we move the code to flag special chars into the rest of the parser routine.
+
+### settings.c
+
+  * Actually, we want a slightly more full featured set of eeprom functions.
+  * version is moved into the first field of the settings structure.
+  * reset the version counter to 0 and take out all references to migrating from previous firmware versions!
+  * changed eeprom to 1kb. Check number of coordinate axes and size of startup lines - checksums take up more room now.
