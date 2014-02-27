@@ -16,10 +16,15 @@ void timer_setup(void) {
 }
 
 int main(void){
-  PORTC_PCR5 = STANDARD_GPIO; // PORT_PCR_SRE | PORT_PCR_DSE | PORT_PCR_MUX(1);
+  PORTC_PCR5 = STANDARD_OUTPUT; // PORT_PCR_SRE | PORT_PCR_DSE | PORT_PCR_MUX(1);
   GPIOC_PDDR |= 1<<5;
-  timer_setup();
-  while(1);
+
+  while(1){
+    int i = 0;
+    int j = 2;
+    GPIOC_PTOR = 1<<5;
+    delay(500);
+  }
 }
 
 void pit1_isr(void) {

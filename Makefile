@@ -1,43 +1,37 @@
-# configurable options
-OPTIONS = -DF_CPU=48000000 -DUSB_SERIAL -DLAYOUT_US_ENGLISH
-# options needed by many Arduino libraries to configure for Teensy 3.0
-OPTIONS += -D__MK20DX128__ -DARDUINO
+CLOCK = 48000000
 
-TEENSY_PATH = /home/matthew/498/teensy-toolchain
-TOOLS = $(TEENSY_PATH)/hardware/tools
-COMPILER = $(TOOLS)/arm-none-eabi/bin
-VENDOR = vendor
+TEENSY_PATH = ~/498/teensy-toolchain
+COMPILER = $(TEENSY_PATH)/hardware/tools/arm-none-eabi/bin
+VENDOR = ./vendor/
 
 
-CPPFLAGS = -Wall -g -Os -mcpu=cortex-m4 -mthumb -nostdlib -MMD $(OPTIONS) -Ivendor
-# compiler options for C++ only
+CPPFLAGS = -Wall -g -Os -mcpu=cortex-m4 -mthumb -nostdlib -MMD -DF_CPU=$(CLOCK) -DUSB_SERIAL -I$(VENDOR) -D__MK20DX256__
 CXXFLAGS = -std=gnu++0x -felide-constructors -fno-exceptions -fno-rtti
-# compiler options for C only
 CFLAGS =
-# linker options
-LDFLAGS = -Os -Wl,--gc-sections -mcpu=cortex-m4 -mthumb -T$(VENDOR)/mk20dx128.ld
-# additional libraries to link
+LDFLAGS = -Os -Wl,--gc-sections -mcpu=cortex-m4 -mthumb -T$(VENDOR)/mk20dx256.ld
 LIBS = -lm
-# names for the compiler programs
 CC = $(COMPILER)/arm-none-eabi-gcc
 CXX = $(COMPILER)/arm-none-eabi-g++
 OBJCOPY = $(COMPILER)/arm-none-eabi-objcopy
 SIZE = $(COMPILER)/arm-none-eabi-size
 
+OBJECTS = timer_test.o
 
-C_FILES := $(VENDOR)/init.c $(VENDOR)/mk20dx128.c $(VENDOR)/usb_desc.c $(VENDOR)/usb_serial.c $(VENDOR)/usb_dev.c $(VENDOR)/usb_mem.c $(VENDOR)/nonstd.c $(VENDOR)/flexram.c
-CPP_FILES : $(wildcard $(VENDOR)/*.cpp)
-
-OBJS := $(C_FILES:.c=.o) $(CPP_FILES:.cpp=.o)
-
-%.elf: %.o $(OBJS) $(VENDOR)/mk20dx128.ld
-	$(CC) $(LDFLAGS) -o $@ $(OBJS) $< $(LIBS) 
+VENDOR_C = $(wildcard $(VENDOR)/*.c)
+VENDOR_OBJECTS = $(patsubst %.c,%.o,$(VENDOR_C))
 
 %.hex: %.elf
 	$(SIZE) $<
 	$(OBJCOPY) -O ihex -R .eeprom $< $@
 
+
+timer_test.elf: $(OBJECTS) $(VENDOR_OBJECTS) 
+	$(CC) $(LDFLAGS) -o $@ $(OBJECTS) $(VENDOR_OBJECTS) $(LIBS) 
+
 -include $(OBJS:.o=.d)
+
+all: test.hex
 
 clean:
 	rm -f *.o *.d *.elf *.hex
+
